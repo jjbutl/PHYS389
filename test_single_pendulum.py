@@ -1,32 +1,40 @@
 #Import modules, including the file being tested, singlePendulum
-import single_pendulum as sp
+from single_pendulum import SinglePendulum
 import numpy as np
 
-#Test the EoM function
-def test_EoM():
-    #Check that when the pendulum is horizontal, sin(theta)=1 and so the angular acceleration = -g/l:
-    assert sp.EoM(np.pi/2, 1, 9.81) == -9.81
-    #Check that when the pendulum is vertical, sin(theta)=0 and so the angular acceleration = 0:
-    assert sp.EoM(0, 1, 9.81) == 0
+#Set up an instance of a default pendulum, where l=1m, m=1kg and g=9.81ms^-2
+default = SinglePendulum()
 
-#test_EoM()
+#Test the derivatives function
+def test_derivatives():
+    #Check that when the pendulum is horizontal, so theta=pi/2 and z=sqrt(2*g*cos(theta)/l)=0, that thetadot=z=0 and zdot=-g*sin(theta)/l=-9.81:
+    theta, z = np.pi/2, 0
+    assert default.derivatives(variables=(theta,z)) == (0, -9.81)
+    #Check that when the pendulum is vertical, so theta=0 and z=sqrt(2*g*cos(theta)/l), that thetadot=z=sqrt(2*g*cos(theta)/l) and zdot=-g*sin(theta)/l=0:
+    theta, z = 0, np.sqrt(2*9.81*1)/1
+    assert default.derivatives(variables=(theta,z)) == (np.sqrt(2*9.81*1)/1, 0)
+
+#test_derivatives()
 
 #Test the kineticEnergy function
 def test_kineticEnergy():
-    #Check that when the pendulum is horizontal (i.e. z=0 since the pendulum velocity will be 0), the kinetic energy is 0:
-    assert sp.kineticEnergy(0, 1, 1) == 0
-    #An equation for the first derivative of theta is z=sqrt(-2*g*y)/l. When l=1 and the pendulum is vertical (so y=-l=-1):
-    z=np.sqrt(-2*9.81*-1)/1
-    #Check that when the pendulum is vertical and m=l=1, the kinetic energy is g=9.81
-    assert sp.kineticEnergy(z, 1, 1) == 9.81
+    #Check that when the pendulum is horizontal, so theta=pi/2 and z=sqrt(2*g*cos(theta)/l)=0, that kineticEnergy=0.5*m*l^2*z^2=0:
+    theta = np.pi/2
+    z = np.sqrt(2*9.81*np.cos(theta)/1)
+    assert np.abs(default.kineticEnergy(z=z)) <= 1e-10
+    #Check that when the pendulum is vertical, so theta=0 so z=sqrt(2*g*cos(theta)/l)=sqrt(2*9.81), that kineticEnergy=0.5*m*l^2*z^2=g=9.81:
+    theta = 0
+    z = np.sqrt(2*9.81*np.cos(theta)/1)
+    assert default.kineticEnergy(z=z) == 9.81
 
 #test_kineticEnergy()
 
 #Test the potentialEnergy function
 def test_potentialEnergy():
-    #Check that when the pendulum is horizontal (i.e. theta=pi/2), the potential energy is approximately 0:
-    assert np.abs(sp.potentialEnergy(np.pi/2, 1, 1, 9.81)) <= 1e-10
-    #Check that when the pendulum is vertical (i.e. theta=0) and l=1 and m=1, the potential energy is -g=-9.81:
-    assert sp.potentialEnergy(0, 1, 1, 9.81) == -9.81
+    #Check that when the pendulum is horizontal, so theta=pi/2, that potentialEnergy=-m*g*l*cos(theta)=0:
+    theta=np.pi/2
+    assert np.abs(default.potentialEnergy(theta=theta)) <= 1e-10
+    #Check that when the pendulum is vertical, so theta=0, that potentialEnergy=-m*g*l*cos(theta)=-9.81:
+    assert default.potentialEnergy(theta=0) == -9.81
 
-test_potentialEnergy()
+#test_potentialEnergy()

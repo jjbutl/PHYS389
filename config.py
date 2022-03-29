@@ -1,7 +1,4 @@
 #Import modules
-from scipy.integrate import odeint
-from astropy.io import fits
-import os
 import numpy as np
 from single_pendulum import SinglePendulum
 
@@ -11,9 +8,9 @@ directory = "C:\\Users\\joebu\\OneDrive\\Documents\\PHYS389\\PHYS389"
 #Set the simulation paramters:
 m=2 #Mass of bob m in kg
 l=4 #Length of pendulum l in m
-simulationTime = 30 #Simulation time in s
+simulationTime = 5 #Simulation time in s
 timestep = 0.01 #Timestep in s
-initialTheta = np.pi/2 #Initial angle theta in radians
+initialTheta = np.pi/3 #Initial angle theta in radians
 initialz = 0 #Initial z (angular velocity) in rad*s^-1
 
 #Create an instance of a SinglePendulum
@@ -23,17 +20,10 @@ t = np.arange(0, simulationTime+timestep, timestep)
 #Create a tuple for the initial variables
 initialVariables = np.array([initialTheta, initialz])
 #Numerically integrate the equations of motion
-variables = odeint(singlePendulum.derivatives, initialVariables, t)
-
-#Set up the columns for a fits table to store the simulation data
-hdu=fits.BinTableHDU.from_columns(
-    [fits.Column(name="Time", format="E", array=t),
-    fits.Column(name="Theta", format="E", array=variables[:,0]),
-    fits.Column(name="z", format="E", array=variables[:,1])
-    ])
-#Delete the current fits file if it exists
-if os.path.exists("{0}\\single_pendulum_simulation.fits".format(directory)):
-    os.remove("{0}\\single_pendulum_simulation.fits".format(directory))
-            
-#Save the new fits file
-hdu.writeto("{0}\\single_pendulum_simulation.fits".format(directory))
+variables = singlePendulum.integrate(t, initialVariables, singlePendulum)
+#Create a 2d python array containing time, theta, z, x position and y position
+data = np.append(variables, np.transpose([t, l*np.sin(variables[:,0]), -l*np.cos(variables[:,0])]), axis=1)
+#Plot, save and show an animation of the pendulum's motion
+singlePendulum.animation(directory, data, initialTheta, simulationTime, timestep)
+#Save the simulation data to a fits file
+singlePendulum.saveFits(directory, data, initialTheta, simulationTime, timestep)

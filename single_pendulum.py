@@ -17,12 +17,12 @@ class SinglePendulum(GeneralPendulum):
     def derivatives(self, variables, t=np.arange(0, 10+0.01, 0.01)):
         #The parameters are variables (theta, z) and time t
         theta, z = variables
-        #z is defined as the first derivative of theta, i.e. thetadot
-        thetadot = z
-        #zdot is the first derivative of z, or equivalently, the second derivative of theta
-        zdot = -self.g*np.sin(theta)/self.l
-        #Return thetadot and zdot as a tuple
-        return thetadot, zdot
+        #z is defined as the first derivative of theta, i.e. thetaderiv
+        thetaderiv = z
+        #zderiv is the first derivative of z, or equivalently, the second derivative of theta
+        zderiv = -self.g*np.sin(theta)/self.l
+        #Return thetaderiv and zderiv as a tuple
+        return thetaderiv, zderiv
     def kineticEnergy(self, z):
         #The parameters are z, bob mass m and length l
         #Calculate the kinetic energy of the pendulum
@@ -42,6 +42,7 @@ class SinglePendulum(GeneralPendulum):
         initialThetaDegrees=np.rint((180*initialTheta/np.pi))
         def animatePendulum(step):
             ax.clear()
+            ax.plot([0, coordinates[0][step]], [0, coordinates[1][step]], lw=2, c='k')
             ax.plot(coordinates[0, :step+1], coordinates[1, :step+1], c='blue')
             ax.scatter(coordinates[0, step], coordinates[1,step], c='blue', marker='o')
             ax.plot(coordinates[0,0], coordinates[1,0], c='black', marker='o')
@@ -56,9 +57,9 @@ class SinglePendulum(GeneralPendulum):
         initialThetaDegrees=np.rint((180*initialTheta/np.pi))
         #Set up the columns for a fits table to store the simulation data
         hdu=fits.BinTableHDU.from_columns(
-            [fits.Column(name="Time", format="E", array=data[:,0]),
-            fits.Column(name="Theta", format="E", array=data[:,1]),
-            fits.Column(name="z", format="E", array=data[:,2]),
+            [fits.Column(name="Time", format="E", array=data[:,2]),
+            fits.Column(name="Theta", format="E", array=data[:,0]),
+            fits.Column(name="z", format="E", array=data[:,1]),
             fits.Column(name="x_pos", format="E", array=data[:,3]),
             fits.Column(name="y_pos", format="E", array=data[:,4])
             ])

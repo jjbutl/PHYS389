@@ -4,27 +4,26 @@ from general_pendulum import GeneralPendulum
 import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 from astropy.io import fits
-import os
 from astropy.table import Table
 
 #Create a class for a single pendulum
 class DoublePendulum(GeneralPendulum):
-    def __init__(self, dpInput):
+    def __init__(self, input):
         #As a default, m1=1kg, m2=1kg, l1=1m, l2=1m and g=9.81ms^-2
-        self.m1 = dpInput[0]
-        self.m2 = dpInput[1]
-        self.l1 = dpInput[2]
-        self.l2 = dpInput[3]
+        self.m1 = float(input['mass1'])
+        self.m2 = float(input['mass2'])
+        self.l1 = float(input['length1'])
+        self.l2 = float(input['length2'])
         self.g = 9.81
-        self.initialTheta1 = dpInput[4]
-        self.initialTheta2 = dpInput[5]
-        self.initialTheta1Degrees=np.rint((180*self.initialTheta1/np.pi))
-        self.initialTheta2Degrees=np.rint((180*self.initialTheta2/np.pi))
-        self.initialz1 = dpInput[6]
-        self.initialz2 = dpInput[7]
-        self.simulationTime = dpInput[8]
-        self.timestep = dpInput[9]
-        self.directory = dpInput[10]
+        self.initialTheta1Degrees = float(input['initialtheta1'])
+        self.initialTheta2Degrees = float(input['initialtheta2'])
+        self.initialTheta1 = np.pi*self.initialTheta1Degrees/180
+        self.initialTheta2 = np.pi*self.initialTheta2Degrees/180
+        self.initialz1 = float(input['initialz1'])
+        self.initialz2 = float(input['initialz2'])
+        self.simulationTime = float(input['simulationtime'])
+        self.timestep = float(input['timestep'])
+        self.directory = input['directory']
         #Create an array t which runs from zero to simulationTime in intervals of the timestep
         self.t = np.arange(0, self.simulationTime+self.timestep, self.timestep)
         #Create an array for the initial variables
@@ -45,39 +44,49 @@ class DoublePendulum(GeneralPendulum):
         return np.array([theta1deriv, theta2deriv, z1deriv, z2deriv])
 
     def data(self,variables):
-        x1 = self.l1*np.sin(variables[:,0])
-        y1 = -self.l1*np.cos(variables[:,0])
-        x2 = x1 + self.l2*np.sin(variables[:,1])
-        y2 = y1 - self.l2*np.cos(variables[:,1])
-        pe = self.potentialEnergy(m=self.m1,l=self.l1,theta=variables[:,0]) + self.potentialEnergy(m=self.m2,l=self.l2,theta=variables[:,1])
-        ke = self.kineticEnergy(m=self.m1,l=self.l1,z=variables[:,2]) + self.kineticEnergy(m=self.m1,l=self.l2,z=variables[:,3])
+        theta1 = variables[:,0] - ((variables[:,0] + np.pi) // (2*np.pi)) * 2*np.pi
+        theta2 = variables[:,1] - ((variables[:,1] + np.pi) // (2*np.pi)) * 2*np.pi
+        #theta1 = variables[:,0]
+        #theta2 = variables[:,1]
+        z1 = variables[:,2]
+        z2 = variables[:,3]
+        x1 = self.l1*np.sin(theta1)
+        y1 = -self.l1*np.cos(theta1)
+        x2 = x1 + self.l2*np.sin(theta2)
+        y2 = y1 - self.l2*np.cos(theta2)
+        v1_squared = (self.l1*z1)**2
+        v2_squared = (self.l1*z1)**2 + (self.l2*z2)**2 + 2*self.l1*self.l2*z1*z2*np.cos(theta1-theta2)
+        p1 = (self.m1+self.m2)*(self.l1**2)*z1 + self.m2*self.l1*self.l2*z2*np.cos(theta1-theta2)
+        p2 = self.m2*(self.l2**2)*z2 + self.m2*self.l1*self.l2*z1*np.cos(theta1-theta2)
+        pe = self.potentialEnergy(m=self.m1,y=y1) + self.potentialEnergy(m=self.m2,y=y2)
+        ke = self.kineticEnergy(m=self.m1,v_squared=v1_squared) + self.kineticEnergy(m=self.m2,v_squared=v2_squared)
         te = self.totalEnergy(ke,pe)
-        return np.append(variables, np.transpose([self.t, x1, y1, x2, y2, pe, ke, te]), axis=1)
+        return np.transpose([self.t, theta1, theta2, z1, z2, x1, y1, x2, y2, p1, p2, pe, ke, te])
     
     def saveFits(self, data):
         #Set up the columns for a fits table to store the simulation data
         hdu=fits.BinTableHDU.from_columns(
-            [fits.Column(name="Time", format="E", array=data[:,4]),
-            fits.Column(name="Theta1", format="E", array=data[:,0]),
-            fits.Column(name="Theta2", format="E", array=data[:,1]),
-            fits.Column(name="z1", format="E", array=data[:,2]),
-            fits.Column(name="z2", format="E", array=data[:,3]),
+            [fits.Column(name="Time", format="E", array=data[:,0]),
+            fits.Column(name="Theta1", format="E", array=data[:,1]),
+            fits.Column(name="Theta2", format="E", array=data[:,2]),
+            fits.Column(name="z1", format="E", array=data[:,3]),
+            fits.Column(name="z2", format="E", array=data[:,4]),
             fits.Column(name="x1_pos", format="E", array=data[:,5]),
             fits.Column(name="y1_pos", format="E", array=data[:,6]),
             fits.Column(name="x2_pos", format="E", array=data[:,7]),
             fits.Column(name="y2_pos", format="E", array=data[:,8]),
-            fits.Column(name="Potential_Energy", format="E", array=data[:,9]),
-            fits.Column(name="Kinetic_Energy", format="E", array=data[:,10]),
-            fits.Column(name="Total_Energy", format="E", array=data[:,11])
+            fits.Column(name="p1", format="E", array=data[:,9]),
+            fits.Column(name="p2", format="E", array=data[:,10]),
+            fits.Column(name="Potential_Energy", format="E", array=data[:,11]),
+            fits.Column(name="Kinetic_Energy", format="E", array=data[:,12]),
+            fits.Column(name="Total_Energy", format="E", array=data[:,13]),
             ])
-        #Delete the current fits file if it exists
-        if os.path.exists("{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3))):
-            os.remove("{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3)))      
-        #Save the new fits file
-        hdu.writeto("{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3)))
+        file = "{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3))
+        hdu.writeto(file, overwrite="True")
     
     def openFits(self):
-        return Table.read("{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3)))
+        file = "{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3))
+        return Table.read(file)
     
     def animation(self, table):
         coordinates1 = np.array([table["x1_pos"],table["y1_pos"]])

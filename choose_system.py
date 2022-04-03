@@ -1,11 +1,10 @@
 from single_pendulum import SinglePendulum
 from double_pendulum import DoublePendulum
 
-def chooseSystem(sys, spInput, dpInput):
-    if sys == "sp":
-        #Create an instance of a SinglePendulum
-        return SinglePendulum(spInput)
-    elif sys == "dp":
-        return DoublePendulum(dpInput)
+def chooseSystem(sys, input):
+    if sys == "SP":
+        return SinglePendulum(input)
+    elif sys == "DP":
+        return DoublePendulum(input)
     else:
-        print("Please choose a valid system (sp or dp).")
+        print("Please choose a valid system (SP or DP).")

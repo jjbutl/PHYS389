@@ -11,10 +11,10 @@ class GeneralPendulum(ABC):
     @abstractmethod
     def data(self):
         pass
-    def kineticEnergy(self,m,l,z):
-        return 0.5*m*(l**2)*(z**2)
-    def potentialEnergy(self,m,l,theta):
-        return -m*self.g*l*np.cos(theta)
+    def kineticEnergy(self,m,v_squared):
+        return 0.5*m*v_squared
+    def potentialEnergy(self,m,y):
+        return m*self.g*y
     def integrate(self):
         #Numerically integrate the equations of motion
         return odeint(self.derivatives, self.initialVariables, self.t)

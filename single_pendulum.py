@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 from astropy.io import fits
 from astropy.table import Table
+import os
 
 #Create a class for a single pendulum
 class SinglePendulum(GeneralPendulum):
     def __init__(self, input):
         #As a default, m=1kg, l=1m and g=9.81ms^-2
+        self.system = input['system']
+        self.num = int(input['multiplenumber'])
         self.m = float(input['mass'])
         self.l = float(input['length'])
         self.g = 9.81
@@ -46,6 +49,9 @@ class SinglePendulum(GeneralPendulum):
         te = self.totalEnergy(ke,pe)
         return np.transpose([self.t, theta, z, x, y, p, pe, ke, te])
 
+    def makeDirectory(self):
+        os.mkdir("{0}\\Simulation_Data\\sp_m={1}kg,l={2}m,t={3}s,step={4}ms".format(self.directory, self.m, self.l, self.simulationTime, int(self.timestep*1E3)))
+
     def saveFits(self, data):
         #Set up the columns for a fits table to store the simulation data
         hdu=fits.BinTableHDU.from_columns(
@@ -59,11 +65,26 @@ class SinglePendulum(GeneralPendulum):
             fits.Column(name="Kinetic_Energy", format="E", array=data[:,7]),
             fits.Column(name="Total_Energy", format="E", array=data[:,8])
             ])
-        file = "{0}\\Simulation_Data\\single_pendulum_m={1}kg,l={2}m,theta={3}degrees,t={4}s,step={5}ms.fits".format(self.directory, self.m, self.l, int(self.initialThetaDegrees), self.simulationTime, int(self.timestep*1E3))
+        file = "{0}\\Simulation_Data\\sp_m={1}kg,l={2}m,t={3}s,step={4}ms\\sp,theta={5}degrees,z={6}.fits".format(self.directory, self.m, self.l, self.simulationTime, int(self.timestep*1E3), int(self.initialThetaDegrees), int(self.initialz))
         hdu.writeto(file, overwrite="True")
 
-    def openFits(self):
-        return Table.read("{0}\\Simulation_Data\\single_pendulum_m={1}kg,l={2}m,theta={3}degrees,t={4}s,step={5}ms.fits".format(self.directory, self.m, self.l, int(self.initialThetaDegrees), self.simulationTime, int(self.timestep*1E3)))
+    def loadFits(self):
+        return Table.read("{0}\\Simulation_Data\\sp_m={1}kg,l={2}m,t={3}s,step={4}ms\\sp,theta={5}degrees,z={6}.fits".format(self.directory, self.m, self.l, self.simulationTime, int(self.timestep*1E3), int(self.initialThetaDegrees), int(self.initialz)))
+
+    def createInitialRange(self):
+        initialThetaRange = np.linspace(-self.initialTheta, self.initialTheta, num=self.num)
+        hdu=fits.BinTableHDU.from_columns(
+            [fits.Column(name="InitialTheta", format="E", array=initialThetaRange)])
+        file = "{0}\\Simulation_Data\\sp_m={1}kg,l={2}m,t={3}s,step={4}ms\\sp_initial_range.fits".format(self.directory, self.m, self.l, self.simulationTime, int(self.timestep*1E3))
+        hdu.writeto(file, overwrite="True")
+
+    def loadInitialRange(self):
+        t = Table.read("{0}\\Simulation_Data\\sp_m={1}kg,l={2}m,t={3}s,step={4}ms\\sp_initial_range.fits".format(self.directory, self.m, self.l, self.simulationTime, int(self.timestep*1E3)))
+        return np.array(t["InitialTheta"])
+
+    def updateInitialRange(self, initialRange, x):
+        self.initialTheta = initialRange[x]
+        self.initialThetaDegrees = 180*self.initialTheta/np.pi
 
     def animation(self, table):
         coordinates = np.array([table["x_pos"],table["y_pos"]])

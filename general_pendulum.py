@@ -24,5 +24,5 @@ class GeneralPendulum(ABC):
     def saveFits(self):
         pass
     @abstractmethod
-    def openFits(self):
+    def loadFits(self):
         pass

@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 from astropy.io import fits
 from astropy.table import Table
+import os
 
 #Create a class for a single pendulum
 class DoublePendulum(GeneralPendulum):
     def __init__(self, input):
         #As a default, m1=1kg, m2=1kg, l1=1m, l2=1m and g=9.81ms^-2
+        self.system = input['system']
+        self.num = int(input['multiplenumber'])
         self.m1 = float(input['mass1'])
         self.m2 = float(input['mass2'])
         self.l1 = float(input['length1'])
@@ -63,6 +66,9 @@ class DoublePendulum(GeneralPendulum):
         te = self.totalEnergy(ke,pe)
         return np.transpose([self.t, theta1, theta2, z1, z2, x1, y1, x2, y2, p1, p2, pe, ke, te])
     
+    def makeDirectory(self):
+        os.mkdir("{0}\\Simulation_Data\\dp_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,t={5}s,step={6}ms".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.simulationTime), int(self.timestep*1E3)))
+
     def saveFits(self, data):
         #Set up the columns for a fits table to store the simulation data
         hdu=fits.BinTableHDU.from_columns(
@@ -81,13 +87,34 @@ class DoublePendulum(GeneralPendulum):
             fits.Column(name="Kinetic_Energy", format="E", array=data[:,12]),
             fits.Column(name="Total_Energy", format="E", array=data[:,13]),
             ])
-        file = "{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3))
+        file = "{0}\\Simulation_Data\\dp_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,t={5}s,step={6}ms\\dp,theta1={7}degrees,theta2={8}degrees,z1={9},z2={10}.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.simulationTime), int(self.timestep*1E3), int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.initialz1, self.initialz2)
         hdu.writeto(file, overwrite="True")
     
-    def openFits(self):
-        file = "{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3))
+    def loadFits(self):
+        file = "{0}\\Simulation_Data\\dp_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,t={5}s,step={6}ms\\dp,theta1={7}degrees,theta2={8}degrees,z1={9},z2={10}.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.simulationTime), int(self.timestep*1E3), int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.initialz1, self.initialz2)
         return Table.read(file)
     
+    def createInitialRange(self):
+        initialTheta1Range = np.linspace(-self.initialTheta1, self.initialTheta1, num=self.num)
+        initialTheta2Range = np.linspace(-self.initialTheta2, self.initialTheta2, num=self.num)
+        hdu=fits.BinTableHDU.from_columns(
+            [fits.Column(name="InitialTheta1", format="E", array=initialTheta1Range),
+            fits.Column(name="InitialTheta2", format="E", array=initialTheta2Range)])
+        file = "{0}\\Simulation_Data\\dp_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,t={5}s,step={6}ms\\dp_initial_range.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.simulationTime), int(self.timestep*1E3))
+        hdu.writeto(file, overwrite="True")
+
+    def loadInitialRange(self):
+        t = Table.read("{0}\\Simulation_Data\\dp_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,t={5}s,step={6}ms\\dp_initial_range.fits".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.simulationTime), int(self.timestep*1E3)))
+        return (np.array(t["InitialTheta1"]), np.array(t["InitialTheta2"]))
+
+    def updateInitialTheta1(self, initialTheta1, x):
+        self.initialTheta1 = initialTheta1[x]
+        self.initialTheta1Degrees = 180*self.initialTheta1/np.pi
+
+    def updateInitialTheta2(self, initialTheta2, y):
+        self.initialTheta2 = initialTheta2[y]
+        self.initialTheta2Degrees = 180*self.initialTheta2/np.pi
+
     def animation(self, table):
         coordinates1 = np.array([table["x1_pos"],table["y1_pos"]])
         coordinates2 = np.array([table["x2_pos"],table["y2_pos"]])
@@ -107,5 +134,5 @@ class DoublePendulum(GeneralPendulum):
         ax=plt.axes()
         line_ani = ani.FuncAnimation(fig, animatePendulum, interval=1, frames=len(table["Time"]))
         writergif = ani.PillowWriter(fps=50)
-        line_ani.save("{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.gif".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), self.simulationTime, int(self.timestep*1E3)), writer=writergif)
+        line_ani.save("{0}\\Simulation_Data\\double_pendulum_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,theta1={5}degrees,theta2={6}degrees,t={7}s,step={8}ms.gif".format(self.directory, self.m1, self.m2, self.l1, self.l2, int(self.initialTheta1Degrees), int(self.initialTheta2Degrees), int(self.simulationTime), int(self.timestep*1E3)), writer=writergif)
     

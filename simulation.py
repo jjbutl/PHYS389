@@ -1,4 +1,3 @@
-from configparser import ConfigParser
 import numpy as np
 
 def simulationOnce(system):
@@ -7,21 +6,21 @@ def simulationOnce(system):
     system.saveFits(data)
 
 def simulationMany(system):
-    cfg = ConfigParser()
-    cfg.read('config.ini')
-    general = dict(cfg.items('GENERAL'))
-    sys = general['system']
-    if sys == "SP":
-        initialTheta = cfg[sys]['initialtheta']
-        num = cfg['GENERAL']['multiplenumber']
-        initialThetaRange = np.linspace(-float(initialTheta), float(initialTheta), num=float(num))
-    for x in len(initialThetaRange):
-        system.initialThetaDegrees = initialThetaRange[x]
-        system.initialTheta = np.pi*system.initialThetaDegrees/180
-        variables = system.integrate()
-        data = system.data(variables)
-        system.saveFlip(data)
-
-def animation(system):
-    table = system.openFits()
-    system.animation(table)
+    if system.system == "SP":
+        system.createInitialRange()
+        initialRange = system.loadInitialRange()
+        for x in range(len(initialRange)):
+            print(x)
+            system.updateInitialRange
+            simulationOnce(system)
+    elif system.system == "DP":
+        system.createInitialRange()
+        initialTheta1, initialTheta2 = system.loadInitialRange()
+        for x in range(len(initialTheta1)): #len(initialTheta1)
+            print(x)
+            system.updateInitialTheta1(initialTheta1, x)
+            for y in range(len(initialTheta2)): #len(initialTheta2)
+                print(y)
+                system.updateInitialTheta2(initialTheta2, y)
+                system.initialVariables = np.array([system.initialTheta1, system.initialTheta2, system.initialz1, system.initialz2])
+                simulationOnce(system)

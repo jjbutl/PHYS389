@@ -1,7 +1,7 @@
 #Import modules
 from abc import ABC, abstractmethod
 from scipy.integrate import odeint
-import numpy as np
+from scipy.integrate import solve_ivp
 
 #Create abstract class for an n-pendulum
 class GeneralPendulum(ABC):
@@ -17,7 +17,7 @@ class GeneralPendulum(ABC):
         return m*self.g*y
     def integrate(self):
         #Numerically integrate the equations of motion
-        return odeint(self.derivatives, self.initialVariables, self.t)
+        return solve_ivp(self.derivatives, [0,self.simulationTime],self.initialVariables,method=self.method, t_eval=self.t, rtol=1e-8, atol=1e-8).y
     def totalEnergy(self,kinetic,potential):
         return kinetic + potential
     @abstractmethod

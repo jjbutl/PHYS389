@@ -1,5 +1,4 @@
 import numpy as np
-from astropy.io import fits
 
 def flipTime(system):
     initialTheta1, initialTheta2 = system.loadInitialRange()
@@ -25,13 +24,7 @@ def flipTime(system):
             if len(timeMasked) != 0:
                 flipTime = timeMasked[0]/timescale
             else:
-                flipTime = 10000
+                flipTime = 1000
             data = np.append(data, np.array([[system.initialTheta1, system.initialTheta2, flipTime]]), axis=0)
-    hdu=fits.BinTableHDU.from_columns(
-        [fits.Column(name="InitialTheta1", format="E", array=data[:,0]),
-        fits.Column(name="InitialTheta2", format="E", array=data[:,1]),
-        fits.Column(name="FlipTime", format="E", array=data[:,2])
-        ])
-    file = "{0}\\Simulation_Data\\dp_m1={1}kg,m2={2}kg,l1={3}m,l2={4}m,t={5}s,step={6}ms\\dp_flip.fits".format(system.directory, system.m1, system.m2, system.l1, system.l2, int(system.simulationTime), int(system.timestep*1E3))
-    hdu.writeto(file, overwrite="True")
+    system.saveFlip(data)
     

@@ -1,14 +1,25 @@
 #Import modules
-from config_reader import configReader
-from simulation import simulationOnce, simulationMany
-from analysis import flipTime
-from graphing import flipTimePlot
-import numpy as np
+from config_reader import *
+from simulation import *
+from analysis import *
+from unit_test import *
+from graphing import *
 
+"""SETUP"""
 system = configReader()
-system.simulationTime = 1000*np.sqrt(system.l1/system.g)
-system.t = np.arange(0, system.simulationTime+system.timestep, system.timestep)
-#system.makeDirectory()
-#simulationOnce(system) #Simulate the system and create the data file
-#simulationMany(system)
-flipTime(system)
+
+"""SIMULATIONS"""
+simulateOnce(system)
+#simulateMany(system)
+
+"""ANALYSIS"""
+#flipTime(system)
+
+"""UNIT TESTS"""
+#testKE(system)
+#testPE(system)
+
+"""PLOTS"""
+#flipTimePlot(system)
+#energyExchange(system)
+#energyConservation(system)

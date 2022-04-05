@@ -7,4 +7,6 @@ def configReader():
     general = dict(cfg.items('GENERAL'))
     sys = general['system']
     input = {**dict(cfg.items(sys)), **general}
-    return chooseSystem(sys, input)
+    system = chooseSystem(sys, input)
+    system.makeDirectory()
+    return system
